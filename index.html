@@ -441,65 +441,88 @@
             const search = searchInput.value.toLowerCase();
             const dateFilter = dateInput.value;
 
-            const groups = {};
-            const sorted = [...allAbsensi].sort((a,b) => a.timestamp - b.timestamp);
-
-            sorted.forEach(item => {
-                if(search && !item.nama.toLowerCase().includes(search)) return;
-
-                // Selalu filter per bulan & tahun (kalau tanggal filter diisi)
+            // 1. Filter by search, dan by 1 bulan spesifik kalau tanggal filter diisi
+            const filtered = allAbsensi.filter(item => {
+                if(search && !item.nama.toLowerCase().includes(search)) return false;
                 if(dateFilter) {
                     const itemParts = item.tanggal.split('/'); // dd/mm/yyyy
                     const filterDate = new Date(dateFilter);
                     const filterMonth = (filterDate.getMonth() + 1).toString().padStart(2, '0');
                     const filterYear = filterDate.getFullYear().toString();
-                    if(itemParts[1] !== filterMonth || itemParts[2] !== filterYear) return;
+                    if(itemParts[1] !== filterMonth || itemParts[2] !== filterYear) return false;
                 }
+                return true;
+            });
+            if(filtered.length === 0) return alert("Tidak ada data untuk diexport.");
 
+            // 2. Kelompokkan jadi 1 baris per guru per tanggal
+            const sorted = [...filtered].sort((a,b) => a.timestamp - b.timestamp);
+            const dayGroups = {};
+            sorted.forEach(item => {
                 const key = `${item.nama}_${item.tanggal}`;
-                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", rapat: "-", eskul: [], logs: [], ts: item.timestamp };
-                
+                if(!dayGroups[key]) dayGroups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", rapat: "-", eskul: [], logs: [], ts: item.timestamp };
+
                 if(item.jenis === "KANTOR") {
-                    if(item.statusKantor === "MASUK") groups[key].in = item.waktu;
-                    if(item.statusKantor === "PULANG") groups[key].out = item.waktu;
+                    if(item.statusKantor === "MASUK") dayGroups[key].in = item.waktu;
+                    if(item.statusKantor === "PULANG") dayGroups[key].out = item.waktu;
                 } else if(item.jenis === "KAJIAN") {
-                    groups[key].kajian = item.waktu;
+                    dayGroups[key].kajian = item.waktu;
                 } else if(item.jenis === "RAPAT") {
-                    groups[key].rapat = item.waktu;
+                    dayGroups[key].rapat = item.waktu;
                 } else if(item.jenis === "EKSKUL") {
-                    groups[key].eskul.push(`${item.lokasi} (${item.waktu})`);
+                    dayGroups[key].eskul.push(`${item.lokasi} (${item.waktu})`);
                 } else { 
-                    groups[key].logs.push(`${item.lokasi} (${item.waktu})`); 
+                    dayGroups[key].logs.push(`${item.lokasi} (${item.waktu})`); 
                 }
             });
+            const allDays = Object.values(dayGroups).sort((a,b) => a.ts - b.ts);
 
-            const rawData = Object.values(groups).sort((a,b) => a.ts - b.ts);
-            if(rawData.length === 0) return alert("Tidak ada data untuk diexport.");
+            // 3. Pecah per bulan (yyyy-mm), biar data Jan-Des gak numpuk jadi satu
+            const monthBuckets = {};
+            allDays.forEach(i => {
+                const parts = i.tgl.split('/'); // dd/mm/yyyy
+                const mm = parts[1], yyyy = parts[2];
+                const bucketKey = `${yyyy}-${mm}`;
+                if(!monthBuckets[bucketKey]) monthBuckets[bucketKey] = { label: `${BULAN_ID[parseInt(mm,10)-1]} ${yyyy}`, rows: [] };
+                monthBuckets[bucketKey].rows.push(i);
+            });
+            const bucketKeys = Object.keys(monthBuckets).sort(); // "yyyy-mm" -> urut kronologis
 
             const wb = XLSX.utils.book_new();
 
-            // SHEET 1: REKAP HARIAN (1 baris per guru per tanggal)
-            const detailExcel = rawData.map(i => {
-                return { "Nama Karyawan": i.nama, "Tanggal": i.tgl, "Kantor Masuk": i.in, "Kantor Pulang": i.out, "Taklim (Kajian)": i.kajian, "Rapat": i.rapat, "Eskul": i.eskul.join(", ") || "-", "Log Mengajar / Aktivitas": i.logs.join(", ") || "-" };
+            // 4. 1 sheet "Rekap Harian" per bulan
+            bucketKeys.forEach(key => {
+                const bucket = monthBuckets[key];
+                const detailExcel = bucket.rows.map(i => ({
+                    "Nama Karyawan": i.nama, "Tanggal": i.tgl, "Kantor Masuk": i.in, "Kantor Pulang": i.out,
+                    "Taklim (Kajian)": i.kajian, "Rapat": i.rapat, "Eskul": i.eskul.join(", ") || "-",
+                    "Log Mengajar / Aktivitas": i.logs.join(", ") || "-"
+                }));
+                const wsDetail = XLSX.utils.json_to_sheet(detailExcel);
+                XLSX.utils.book_append_sheet(wb, wsDetail, bucket.label.substring(0, 31));
             });
-            const wsDetail = XLSX.utils.json_to_sheet(detailExcel);
-            XLSX.utils.book_append_sheet(wb, wsDetail, "Rekap Harian");
 
-            // SHEET 2: REKAP BULANAN (total per guru)
+            // 5. 1 sheet "Rekap Bulanan" total per guru, dipecah per bulan juga (ada kolom Bulan)
             const summaryObj = {};
-            rawData.forEach(i => {
-                if(!summaryObj[i.nama]) summaryObj[i.nama] = { Nama: i.nama, Total_Hadir: 0, Total_Kajian: 0, Total_Rapat: 0, Total_Eskul: 0, Total_Jam_Mengajar: 0 };
-                if(i.in !== "-" || i.out !== "-") summaryObj[i.nama].Total_Hadir++;
-                if(i.kajian !== "-") summaryObj[i.nama].Total_Kajian++;
-                if(i.rapat !== "-") summaryObj[i.nama].Total_Rapat++;
-                summaryObj[i.nama].Total_Eskul += i.eskul.length;
-                summaryObj[i.nama].Total_Jam_Mengajar += i.logs.length;
+            bucketKeys.forEach(key => {
+                monthBuckets[key].rows.forEach(i => {
+                    const sKey = `${monthBuckets[key].label}_${i.nama}`;
+                    if(!summaryObj[sKey]) summaryObj[sKey] = { Bulan: monthBuckets[key].label, Nama: i.nama, Total_Hadir: 0, Total_Kajian: 0, Total_Rapat: 0, Total_Eskul: 0, Total_Jam_Mengajar: 0 };
+                    if(i.in !== "-" || i.out !== "-") summaryObj[sKey].Total_Hadir++;
+                    if(i.kajian !== "-") summaryObj[sKey].Total_Kajian++;
+                    if(i.rapat !== "-") summaryObj[sKey].Total_Rapat++;
+                    summaryObj[sKey].Total_Eskul += i.eskul.length;
+                    summaryObj[sKey].Total_Jam_Mengajar += i.logs.length;
+                });
             });
             const summaryExcel = Object.values(summaryObj);
             const wsSummary = XLSX.utils.json_to_sheet(summaryExcel);
             XLSX.utils.book_append_sheet(wb, wsSummary, "Rekap Bulanan");
 
-            const labelBulan = dateFilter ? new Date(dateFilter).toLocaleDateString('id-ID', {month:'2-digit', year:'numeric'}).replace('/', '-') : new Date().toISOString().split('T')[0];
+            // 6. Nama file otomatis nyesuain rentang bulan yang ada
+            const first = monthBuckets[bucketKeys[0]].label.replace(' ', '_');
+            const last = monthBuckets[bucketKeys[bucketKeys.length - 1]].label.replace(' ', '_');
+            const labelBulan = bucketKeys.length === 1 ? first : `${first}-${last}`;
             XLSX.writeFile(wb, `Rekap_Absensi_DA_Bulanan_${labelBulan}.xlsx`);
         };
 
