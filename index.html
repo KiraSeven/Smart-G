@@ -128,10 +128,7 @@
                         <h3 id="stat-scan" class="text-3xl font-black text-cyan-400">0</h3>
                     </div>
                     <div class="modern-glass p-6 rounded-3xl border-white/5 flex flex-col justify-center col-span-1 md:col-span-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="window.exportToExcel('harian')" class="shine-effect relative bg-cyan-500 text-slate-950 text-[10px] font-black uppercase py-3 rounded-xl"><span class="relative z-10">Export Harian</span></button>
-                            <button onclick="window.exportToExcel('bulanan')" class="shine-effect relative bg-white text-slate-950 text-[10px] font-black uppercase py-3 rounded-xl shadow-lg shadow-white/10"><span class="relative z-10">Rekap Bulanan</span></button>
-                        </div>
+                        <button onclick="window.exportToExcel()" class="shine-effect relative w-full bg-cyan-500 text-slate-950 text-[10px] font-black uppercase py-3 rounded-xl"><span class="relative z-10">Download Rekap Bulanan</span></button>
                         <div class="flex items-center justify-center gap-4 mt-3">
                             <button onclick="location.reload()" class="btn-utility text-slate-400">Keluar Admin</button>
                             <span class="text-slate-700">|</span>
@@ -156,6 +153,8 @@
                                     <th class="p-5 text-center">Kantor In</th>
                                     <th class="p-5 text-center">Kantor Out</th>
                                     <th class="p-5 text-center">Taklim</th>
+                                    <th class="p-5 text-center">Rapat</th>
+                                    <th class="p-5">Eskul</th>
                                     <th class="p-5">Log Mengajar / Aktivitas</th>
                                 </tr>
                             </thead>
@@ -341,7 +340,9 @@
     
     let jenis = "MENGAJAR";
     if(isKantor) jenis = "KANTOR";
-    if(rawQR.includes("Taklim") || rawQR.includes("KAJIAN")) jenis = "KAJIAN";
+    else if(rawQR.includes("TAKLIM") || rawQR.includes("KAJIAN")) jenis = "KAJIAN";
+    else if(rawQR.includes("RAPAT")) jenis = "RAPAT";
+    else if(rawQR.includes("EKSKUL") || rawQR.includes("EXSKUL") || rawQR.includes("EKSTRAKURIKULER")) jenis = "EKSKUL";
 
     const locName = rawQR.replace("LOC:", "").trim();
     const jamMenit = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':');
@@ -364,7 +365,12 @@
 
         playBeep();
         document.getElementById('modal-title').innerText = "ABSEN BERHASIL";
-        document.getElementById('res-status').innerText = jenis === "KANTOR" ? `KANTOR (${statusKtr})` : (jenis === "KAJIAN" ? "KAJIAN" : "LOG AKTIVITAS");
+        let labelStatus = "LOG AKTIVITAS";
+        if(jenis === "KANTOR") labelStatus = `KANTOR (${statusKtr})`;
+        else if(jenis === "KAJIAN") labelStatus = "KAJIAN";
+        else if(jenis === "RAPAT") labelStatus = "RAPAT";
+        else if(jenis === "EKSKUL") labelStatus = "EKSKUL";
+        document.getElementById('res-status').innerText = labelStatus;
         document.getElementById('res-info').innerText = `${locName} @ ${jamMenit}`;
         document.getElementById('modal-success').classList.remove('hidden');
         if(btnClose) btnClose.disabled = false;
@@ -391,13 +397,17 @@
                 if(search && !item.nama.toLowerCase().includes(search)) return;
                 if(formattedDate && item.tanggal !== formattedDate) return;
                 const key = `${item.nama}_${item.tanggal}`;
-                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", logs: [], ts: item.timestamp };
+                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", rapat: "-", eskul: [], logs: [], ts: item.timestamp };
                 
                 if(item.jenis === "KANTOR") {
                     if(item.statusKantor === "MASUK") groups[key].in = item.waktu;
                     if(item.statusKantor === "PULANG") groups[key].out = item.waktu;
                 } else if(item.jenis === "KAJIAN") {
                     groups[key].kajian = item.waktu;
+                } else if(item.jenis === "RAPAT") {
+                    groups[key].rapat = item.waktu;
+                } else if(item.jenis === "EKSKUL") {
+                    groups[key].eskul.push(`${item.lokasi} (${item.waktu})`);
                 } else { 
                     groups[key].logs.push(`${item.lokasi} (${item.waktu})`); 
                 }
@@ -408,7 +418,7 @@
             document.getElementById('stat-scan').innerText = allAbsensi.length;
             
             const tbody = document.getElementById('table-body');
-            tbody.innerHTML = data.length ? "" : `<tr><td colspan="6" class="p-10 text-center text-slate-500 italic">Data Kosong</td></tr>`;
+            tbody.innerHTML = data.length ? "" : `<tr><td colspan="8" class="p-10 text-center text-slate-500 italic">Data Kosong</td></tr>`;
             data.forEach(i => {
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr class="hover:bg-white/5 transition-all">
@@ -417,28 +427,28 @@
                         <td class="p-5 text-center text-emerald-400 font-black">${i.in}</td>
                         <td class="p-5 text-center text-orange-400 font-black">${i.out}</td>
                         <td class="p-5 text-center text-cyan-400 font-black">${i.kajian}</td>
+                        <td class="p-5 text-center text-purple-400 font-black">${i.rapat}</td>
+                        <td class="p-5">${i.eskul.map(l => `<span class="class-badge">${l}</span>`).join("") || "-"}</td>
                         <td class="p-5">${i.logs.map(l => `<span class="class-badge">${l}</span>`).join("") || "-"}</td>
                     </tr>
                 `);
             });
         };
 
-        window.exportToExcel = (mode) => {
+        window.exportToExcel = () => {
             const dateInput = document.getElementById('admin-date-filter');
             const searchInput = document.getElementById('admin-search');
             const search = searchInput.value.toLowerCase();
             const dateFilter = dateInput.value;
-            const formattedDate = dateFilter ? new Date(dateFilter).toLocaleDateString('id-ID') : "";
 
             const groups = {};
             const sorted = [...allAbsensi].sort((a,b) => a.timestamp - b.timestamp);
 
             sorted.forEach(item => {
                 if(search && !item.nama.toLowerCase().includes(search)) return;
-                
-                // Jika mode harian, filter tanggal spesifik. Jika bulanan, filter bulan & tahun saja.
-                if(mode === 'harian' && formattedDate && item.tanggal !== formattedDate) return;
-                if(mode === 'bulanan' && dateFilter) {
+
+                // Selalu filter per bulan & tahun (kalau tanggal filter diisi)
+                if(dateFilter) {
                     const itemParts = item.tanggal.split('/'); // dd/mm/yyyy
                     const filterDate = new Date(dateFilter);
                     const filterMonth = (filterDate.getMonth() + 1).toString().padStart(2, '0');
@@ -447,13 +457,17 @@
                 }
 
                 const key = `${item.nama}_${item.tanggal}`;
-                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", logs: [], ts: item.timestamp };
+                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", rapat: "-", eskul: [], logs: [], ts: item.timestamp };
                 
                 if(item.jenis === "KANTOR") {
                     if(item.statusKantor === "MASUK") groups[key].in = item.waktu;
                     if(item.statusKantor === "PULANG") groups[key].out = item.waktu;
                 } else if(item.jenis === "KAJIAN") {
                     groups[key].kajian = item.waktu;
+                } else if(item.jenis === "RAPAT") {
+                    groups[key].rapat = item.waktu;
+                } else if(item.jenis === "EKSKUL") {
+                    groups[key].eskul.push(`${item.lokasi} (${item.waktu})`);
                 } else { 
                     groups[key].logs.push(`${item.lokasi} (${item.waktu})`); 
                 }
@@ -464,32 +478,29 @@
 
             const wb = XLSX.utils.book_new();
 
-            // SHEET 1: DETAIL HARIAN
-            let maxLogs = 0;
-            rawData.forEach(i => { if(i.logs.length > maxLogs) maxLogs = i.logs.length; });
+            // SHEET 1: REKAP HARIAN (1 baris per guru per tanggal)
             const detailExcel = rawData.map(i => {
-                const row = { "Nama Karyawan": i.nama, "Tanggal": i.tgl, "Kantor Masuk": i.in, "Kantor Pulang": i.out, "Taklim (Kajian)": i.kajian };
-                for(let j = 0; j < maxLogs; j++) row[`Jam-${j+1} / Aktivitas`] = i.logs[j] || "-";
-                return row;
+                return { "Nama Karyawan": i.nama, "Tanggal": i.tgl, "Kantor Masuk": i.in, "Kantor Pulang": i.out, "Taklim (Kajian)": i.kajian, "Rapat": i.rapat, "Eskul": i.eskul.join(", ") || "-", "Log Mengajar / Aktivitas": i.logs.join(", ") || "-" };
             });
             const wsDetail = XLSX.utils.json_to_sheet(detailExcel);
-            XLSX.utils.book_append_sheet(wb, wsDetail, "Detail Harian");
+            XLSX.utils.book_append_sheet(wb, wsDetail, "Rekap Harian");
 
-            // SHEET 2: SUMMARY REKAP TOTAL (KHUSUS BULANAN)
-            if(mode === 'bulanan') {
-                const summaryObj = {};
-                rawData.forEach(i => {
-                    if(!summaryObj[i.nama]) summaryObj[i.nama] = { Nama: i.nama, Total_Hadir: 0, Total_Kajian: 0, Total_Jam_Mengajar: 0 };
-                    if(i.in !== "-" || i.out !== "-") summaryObj[i.nama].Total_Hadir++;
-                    if(i.kajian !== "-") summaryObj[i.nama].Total_Kajian++;
-                    summaryObj[i.nama].Total_Jam_Mengajar += i.logs.length;
-                });
-                const summaryExcel = Object.values(summaryObj);
-                const wsSummary = XLSX.utils.json_to_sheet(summaryExcel);
-                XLSX.utils.book_append_sheet(wb, wsSummary, "Rekap Total Karyawan");
-            }
+            // SHEET 2: REKAP BULANAN (total per guru)
+            const summaryObj = {};
+            rawData.forEach(i => {
+                if(!summaryObj[i.nama]) summaryObj[i.nama] = { Nama: i.nama, Total_Hadir: 0, Total_Kajian: 0, Total_Rapat: 0, Total_Eskul: 0, Total_Jam_Mengajar: 0 };
+                if(i.in !== "-" || i.out !== "-") summaryObj[i.nama].Total_Hadir++;
+                if(i.kajian !== "-") summaryObj[i.nama].Total_Kajian++;
+                if(i.rapat !== "-") summaryObj[i.nama].Total_Rapat++;
+                summaryObj[i.nama].Total_Eskul += i.eskul.length;
+                summaryObj[i.nama].Total_Jam_Mengajar += i.logs.length;
+            });
+            const summaryExcel = Object.values(summaryObj);
+            const wsSummary = XLSX.utils.json_to_sheet(summaryExcel);
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Rekap Bulanan");
 
-            XLSX.writeFile(wb, `Rekap_Absensi_DA_${mode}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const labelBulan = dateFilter ? new Date(dateFilter).toLocaleDateString('id-ID', {month:'2-digit', year:'numeric'}).replace('/', '-') : new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Rekap_Absensi_DA_Bulanan_${labelBulan}.xlsx`);
         };
 
         // Samain dengan tanggal expiry di rules Firestore (timestamp.date(...))
