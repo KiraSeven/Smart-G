@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Monitoring & Attendance Real-time for Guru</title>
+    <title>Teacher Attendance</title>
     <meta name="theme-color" content="#020617">
     
     <!-- PWA Support - Ikon Launcher Logo Sekolah -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="System Monitoring & Attendance Real-time for Guru">
+    <meta name="apple-mobile-web-app-title" content="Teacher Attendance">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
     
@@ -75,7 +75,7 @@
     <img src="logo.png" alt="Logo Sekolah" class="w-full h-full object-contain">
 </div>
                 <div>
-                    <h1 class="text-xl font-black uppercase tracking-tighter text-white leading-tight">SMART-G <br><span class="text-neon text-lg tracking-normal">System Monitoring & Attendance Real-time for Guru</span></h1>
+                    <h1 class="text-xl font-black uppercase tracking-tighter text-white leading-tight">Teacher Attendance <br><span class="text-neon text-lg tracking-normal">Digital Attendance System</span></h1>
                     <p id="connection-status" class="text-[8px] font-bold text-yellow-500 tracking-[0.3em] uppercase italic mt-1">Menghubungkan...</p>
                 </div>
             </div>
@@ -84,8 +84,6 @@
                 <button onclick="window.promptAdmin()" class="px-4 py-2 rounded-xl modern-glass btn-utility text-slate-400">Admin</button>
             </div>
         </header>
-
-        <div id="monthly-update-banner" class="hidden mb-8 max-w-2xl mx-auto w-full"></div>
 
         <main>
             <!-- View Guru -->
@@ -128,7 +126,10 @@
                         <h3 id="stat-scan" class="text-3xl font-black text-cyan-400">0</h3>
                     </div>
                     <div class="modern-glass p-6 rounded-3xl border-white/5 flex flex-col justify-center col-span-1 md:col-span-2">
-                        <button onclick="window.exportToExcel()" class="shine-effect relative w-full bg-cyan-500 text-slate-950 text-[10px] font-black uppercase py-3 rounded-xl"><span class="relative z-10">Download Rekap Bulanan</span></button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="window.exportToExcel('harian')" class="shine-effect relative bg-cyan-500 text-slate-950 text-[10px] font-black uppercase py-3 rounded-xl"><span class="relative z-10">Export Harian</span></button>
+                            <button onclick="window.exportToExcel('bulanan')" class="shine-effect relative bg-white text-slate-950 text-[10px] font-black uppercase py-3 rounded-xl shadow-lg shadow-white/10"><span class="relative z-10">Rekap Bulanan</span></button>
+                        </div>
                         <div class="flex items-center justify-center gap-4 mt-3">
                             <button onclick="location.reload()" class="btn-utility text-slate-400">Keluar Admin</button>
                             <span class="text-slate-700">|</span>
@@ -152,9 +153,8 @@
                                     <th class="p-5">Tanggal</th>
                                     <th class="p-5 text-center">Kantor In</th>
                                     <th class="p-5 text-center">Kantor Out</th>
-                                    <th class="p-5 text-center">Taklim</th>
-                                    <th class="p-5 text-center">Rapat</th>
-                                    <th class="p-5">Eskul</th>
+                                    <th class="p-5 text-center">Aula SMP</th>
+                                    <th class="p-5 text-center">Jam Pelajaran</th>
                                     <th class="p-5">Log Mengajar / Aktivitas</th>
                                 </tr>
                             </thead>
@@ -164,6 +164,25 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal Input Jam Pelajaran -->
+    <div id="modal-jam" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/98 backdrop-blur-md">
+        <div class="modern-glass p-8 rounded-[40px] text-center max-w-sm w-full border border-cyan-500/30">
+            <h3 class="text-lg font-black text-white uppercase mb-1">Input Jam Pelajaran</h3>
+            <p id="jam-lokasi-info" class="text-cyan-500 font-bold uppercase text-[10px] tracking-widest mb-6"></p>
+            <div class="grid grid-cols-4 gap-2 mb-4">
+                <button type="button" onclick="window.pickJam(1)" class="bg-white/5 border border-white/10 rounded-xl py-3 text-white font-black active:scale-95 transition-all">1</button>
+                <button type="button" onclick="window.pickJam(2)" class="bg-white/5 border border-white/10 rounded-xl py-3 text-white font-black active:scale-95 transition-all">2</button>
+                <button type="button" onclick="window.pickJam(3)" class="bg-white/5 border border-white/10 rounded-xl py-3 text-white font-black active:scale-95 transition-all">3</button>
+                <button type="button" onclick="window.pickJam(4)" class="bg-white/5 border border-white/10 rounded-xl py-3 text-white font-black active:scale-95 transition-all">4</button>
+            </div>
+            <input type="number" id="jam-manual-input" min="1" max="12" placeholder="Atau ketik jam lain..." class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm text-white text-center mb-6">
+            <div class="flex gap-3">
+                <button onclick="window.cancelJam()" class="w-1/3 py-4 bg-white/5 border border-white/10 text-slate-400 font-black rounded-xl uppercase text-xs">Batal</button>
+                <button onclick="window.confirmJam()" class="w-2/3 py-4 bg-cyan-500 text-slate-950 font-black rounded-xl uppercase text-xs">Konfirmasi</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Success -->
@@ -188,8 +207,8 @@
             <div class="logo-box glow-pulse w-20 h-20 mx-auto mb-6">
                 <img src="logo.png" alt="Logo Sekolah" class="w-full h-full object-contain">
             </div>
-            <h3 class="text-xl font-black text-white uppercase tracking-tight mb-1">SMART-G</h3>
-            <p class="text-[9px] font-bold text-cyan-500 tracking-[0.3em] uppercase italic mb-1">System Monitoring & Attendance Real-time for Guru</p>
+            <h3 class="text-xl font-black text-white uppercase tracking-tight mb-1">Teacher Attendance</h3>
+            <p class="text-[9px] font-bold text-cyan-500 tracking-[0.3em] uppercase italic mb-1">Digital Attendance System</p>
             <span class="inline-block mt-2 mb-6 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[9px] font-black uppercase tracking-widest">Versi 1.0.0</span>
 
             <div class="p-5 bg-white/5 rounded-2xl border border-white/10 text-left mb-6">
@@ -279,6 +298,39 @@
             signInAnonymously(auth).catch(e => console.error("Masuk Gagal:", e));
         };
 
+        // --- MODAL INPUT JAM PELAJARAN ---
+        let jamPelajaranResolver = null;
+
+        function askJamPelajaran(locName) {
+            return new Promise((resolve) => {
+                jamPelajaranResolver = resolve;
+                document.getElementById('jam-lokasi-info').innerText = locName;
+                document.getElementById('jam-manual-input').value = '';
+                document.getElementById('modal-jam').classList.remove('hidden');
+            });
+        }
+
+        window.pickJam = (n) => {
+            document.getElementById('modal-jam').classList.add('hidden');
+            if (jamPelajaranResolver) jamPelajaranResolver(n);
+            jamPelajaranResolver = null;
+        };
+
+        window.confirmJam = () => {
+            const val = parseInt(document.getElementById('jam-manual-input').value, 10);
+            if (!val || val < 1) { alert('Masukkan jumlah jam yang valid (minimal 1).'); return; }
+            document.getElementById('modal-jam').classList.add('hidden');
+            if (jamPelajaranResolver) jamPelajaranResolver(val);
+            jamPelajaranResolver = null;
+        };
+
+        window.cancelJam = () => {
+            document.getElementById('modal-jam').classList.add('hidden');
+            if (jamPelajaranResolver) jamPelajaranResolver(null);
+            jamPelajaranResolver = null;
+        };
+        // ----------------------------------
+
         window.handleStartScan = async () => {
             const savedName = localStorage.getItem('user_full_name');
             if(!savedName) {
@@ -331,21 +383,30 @@
     }
     // ----------------------------
 
-    if(btnClose) btnClose.disabled = true;
-    if(btnText) btnText.innerText = "Saving...";
-    if(btnLoader) btnLoader.classList.remove('hidden');
-    
     const today = now.toLocaleDateString('id-ID');
     const name = (localStorage.getItem('user_full_name') || "KARYAWAN").toUpperCase();
     
     let jenis = "MENGAJAR";
     if(isKantor) jenis = "KANTOR";
-    else if(rawQR.includes("TAKLIM") || rawQR.includes("KAJIAN")) jenis = "KAJIAN";
-    else if(rawQR.includes("RAPAT")) jenis = "RAPAT";
-    else if(rawQR.includes("EKSKUL") || rawQR.includes("EXSKUL") || rawQR.includes("EKSTRAKURIKULER")) jenis = "EKSKUL";
+    if(rawQR.includes("AULA SMP") || rawQR.includes("KAJIAN")) jenis = "KAJIAN";
 
     const locName = rawQR.replace("LOC:", "").trim();
     const jamMenit = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':');
+
+    // --- KHUSUS ABSEN KELAS/MENGAJAR: WAJIB INPUT JUMLAH JAM PELAJARAN ---
+    let jamPelajaran = null;
+    if(jenis === "MENGAJAR") {
+        jamPelajaran = await askJamPelajaran(locName);
+        if(jamPelajaran === null) {
+            location.reload();
+            return;
+        }
+    }
+    // ----------------------------------------------------------------
+
+    if(btnClose) btnClose.disabled = true;
+    if(btnText) btnText.innerText = "Saving...";
+    if(btnLoader) btnLoader.classList.remove('hidden');
 
     let statusKtr = "";
     if(jenis === "KANTOR") {
@@ -357,6 +418,7 @@
         await addDoc(collection(db, "absensi"), {
             nama: name, lokasi: locName, jenis: jenis,
             statusKantor: statusKtr, waktu: jamMenit, tanggal: today,
+            jamPelajaran: jamPelajaran,
             timestamp: now.getTime(), createdAt: serverTimestamp()
         });
         
@@ -365,12 +427,9 @@
 
         playBeep();
         document.getElementById('modal-title').innerText = "ABSEN BERHASIL";
-        let labelStatus = "LOG AKTIVITAS";
-        if(jenis === "KANTOR") labelStatus = `KANTOR (${statusKtr})`;
-        else if(jenis === "KAJIAN") labelStatus = "KAJIAN";
-        else if(jenis === "RAPAT") labelStatus = "RAPAT";
-        else if(jenis === "EKSKUL") labelStatus = "EKSKUL";
-        document.getElementById('res-status').innerText = labelStatus;
+        let statusText = jenis === "KANTOR" ? `KANTOR (${statusKtr})` : (jenis === "KAJIAN" ? "KAJIAN" : "LOG AKTIVITAS");
+        if(jenis === "MENGAJAR" && jamPelajaran) statusText += ` • ${jamPelajaran} JAM PELAJARAN`;
+        document.getElementById('res-status').innerText = statusText;
         document.getElementById('res-info').innerText = `${locName} @ ${jamMenit}`;
         document.getElementById('modal-success').classList.remove('hidden');
         if(btnClose) btnClose.disabled = false;
@@ -397,19 +456,17 @@
                 if(search && !item.nama.toLowerCase().includes(search)) return;
                 if(formattedDate && item.tanggal !== formattedDate) return;
                 const key = `${item.nama}_${item.tanggal}`;
-                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", rapat: "-", eskul: [], logs: [], ts: item.timestamp };
+                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", logs: [], totalJam: 0, ts: item.timestamp };
                 
                 if(item.jenis === "KANTOR") {
                     if(item.statusKantor === "MASUK") groups[key].in = item.waktu;
                     if(item.statusKantor === "PULANG") groups[key].out = item.waktu;
                 } else if(item.jenis === "KAJIAN") {
                     groups[key].kajian = item.waktu;
-                } else if(item.jenis === "RAPAT") {
-                    groups[key].rapat = item.waktu;
-                } else if(item.jenis === "EKSKUL") {
-                    groups[key].eskul.push(`${item.lokasi} (${item.waktu})`);
                 } else { 
-                    groups[key].logs.push(`${item.lokasi} (${item.waktu})`); 
+                    const jam = item.jamPelajaran || 0;
+                    groups[key].logs.push({ loc: item.lokasi, waktu: item.waktu, jam: jam });
+                    groups[key].totalJam += jam;
                 }
             });
 
@@ -418,7 +475,7 @@
             document.getElementById('stat-scan').innerText = allAbsensi.length;
             
             const tbody = document.getElementById('table-body');
-            tbody.innerHTML = data.length ? "" : `<tr><td colspan="8" class="p-10 text-center text-slate-500 italic">Data Kosong</td></tr>`;
+            tbody.innerHTML = data.length ? "" : `<tr><td colspan="7" class="p-10 text-center text-slate-500 italic">Data Kosong</td></tr>`;
             data.forEach(i => {
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr class="hover:bg-white/5 transition-all">
@@ -427,138 +484,90 @@
                         <td class="p-5 text-center text-emerald-400 font-black">${i.in}</td>
                         <td class="p-5 text-center text-orange-400 font-black">${i.out}</td>
                         <td class="p-5 text-center text-cyan-400 font-black">${i.kajian}</td>
-                        <td class="p-5 text-center text-purple-400 font-black">${i.rapat}</td>
-                        <td class="p-5">${i.eskul.map(l => `<span class="class-badge">${l}</span>`).join("") || "-"}</td>
-                        <td class="p-5">${i.logs.map(l => `<span class="class-badge">${l}</span>`).join("") || "-"}</td>
+                        <td class="p-5 text-center text-white font-black">${i.totalJam || "-"}</td>
+                        <td class="p-5">${i.logs.map(l => `<span class="class-badge">${l.loc} (${l.waktu})${l.jam ? ' • '+l.jam+' Jam' : ''}</span>`).join("") || "-"}</td>
                     </tr>
                 `);
             });
         };
 
-        window.exportToExcel = () => {
+        window.exportToExcel = (mode) => {
             const dateInput = document.getElementById('admin-date-filter');
             const searchInput = document.getElementById('admin-search');
             const search = searchInput.value.toLowerCase();
             const dateFilter = dateInput.value;
+            const formattedDate = dateFilter ? new Date(dateFilter).toLocaleDateString('id-ID') : "";
 
-            // 1. Filter by search, dan by 1 bulan spesifik kalau tanggal filter diisi
-            const filtered = allAbsensi.filter(item => {
-                if(search && !item.nama.toLowerCase().includes(search)) return false;
-                if(dateFilter) {
+            const groups = {};
+            const sorted = [...allAbsensi].sort((a,b) => a.timestamp - b.timestamp);
+
+            sorted.forEach(item => {
+                if(search && !item.nama.toLowerCase().includes(search)) return;
+                
+                // Jika mode harian, filter tanggal spesifik. Jika bulanan, filter bulan & tahun saja.
+                if(mode === 'harian' && formattedDate && item.tanggal !== formattedDate) return;
+                if(mode === 'bulanan' && dateFilter) {
                     const itemParts = item.tanggal.split('/'); // dd/mm/yyyy
                     const filterDate = new Date(dateFilter);
                     const filterMonth = (filterDate.getMonth() + 1).toString().padStart(2, '0');
                     const filterYear = filterDate.getFullYear().toString();
-                    if(itemParts[1] !== filterMonth || itemParts[2] !== filterYear) return false;
+                    if(itemParts[1] !== filterMonth || itemParts[2] !== filterYear) return;
                 }
-                return true;
-            });
-            if(filtered.length === 0) return alert("Tidak ada data untuk diexport.");
 
-            // 2. Kelompokkan jadi 1 baris per guru per tanggal
-            const sorted = [...filtered].sort((a,b) => a.timestamp - b.timestamp);
-            const dayGroups = {};
-            sorted.forEach(item => {
                 const key = `${item.nama}_${item.tanggal}`;
-                if(!dayGroups[key]) dayGroups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", rapat: "-", eskul: [], logs: [], ts: item.timestamp };
-
+                if(!groups[key]) groups[key] = { nama: item.nama, tgl: item.tanggal, in: "-", out: "-", kajian: "-", logs: [], totalJam: 0, ts: item.timestamp };
+                
                 if(item.jenis === "KANTOR") {
-                    if(item.statusKantor === "MASUK") dayGroups[key].in = item.waktu;
-                    if(item.statusKantor === "PULANG") dayGroups[key].out = item.waktu;
+                    if(item.statusKantor === "MASUK") groups[key].in = item.waktu;
+                    if(item.statusKantor === "PULANG") groups[key].out = item.waktu;
                 } else if(item.jenis === "KAJIAN") {
-                    dayGroups[key].kajian = item.waktu;
-                } else if(item.jenis === "RAPAT") {
-                    dayGroups[key].rapat = item.waktu;
-                } else if(item.jenis === "EKSKUL") {
-                    dayGroups[key].eskul.push(`${item.lokasi} (${item.waktu})`);
+                    groups[key].kajian = item.waktu;
                 } else { 
-                    dayGroups[key].logs.push(`${item.lokasi} (${item.waktu})`); 
+                    const jam = item.jamPelajaran || 0;
+                    groups[key].logs.push({ loc: item.lokasi, waktu: item.waktu, jam: jam });
+                    groups[key].totalJam += jam;
                 }
             });
-            const allDays = Object.values(dayGroups).sort((a,b) => a.ts - b.ts);
 
-            // 3. Pecah per bulan (yyyy-mm), biar data Jan-Des gak numpuk jadi satu
-            const monthBuckets = {};
-            allDays.forEach(i => {
-                const parts = i.tgl.split('/'); // dd/mm/yyyy
-                const mm = parts[1], yyyy = parts[2];
-                const bucketKey = `${yyyy}-${mm}`;
-                if(!monthBuckets[bucketKey]) monthBuckets[bucketKey] = { label: `${BULAN_ID[parseInt(mm,10)-1]} ${yyyy}`, rows: [] };
-                monthBuckets[bucketKey].rows.push(i);
-            });
-            const bucketKeys = Object.keys(monthBuckets).sort(); // "yyyy-mm" -> urut kronologis
+            const rawData = Object.values(groups).sort((a,b) => a.ts - b.ts);
+            if(rawData.length === 0) return alert("Tidak ada data untuk diexport.");
 
             const wb = XLSX.utils.book_new();
 
-            // 4. 1 sheet "Rekap Harian" per bulan
-            bucketKeys.forEach(key => {
-                const bucket = monthBuckets[key];
-                const detailExcel = bucket.rows.map(i => ({
-                    "Nama Karyawan": i.nama, "Tanggal": i.tgl, "Kantor Masuk": i.in, "Kantor Pulang": i.out,
-                    "Taklim (Kajian)": i.kajian, "Rapat": i.rapat, "Eskul": i.eskul.join(", ") || "-",
-                    "Log Mengajar / Aktivitas": i.logs.join(", ") || "-"
-                }));
-                const wsDetail = XLSX.utils.json_to_sheet(detailExcel);
-                XLSX.utils.book_append_sheet(wb, wsDetail, bucket.label.substring(0, 31));
+            // SHEET 1: DETAIL HARIAN
+            let maxLogs = 0;
+            rawData.forEach(i => { if(i.logs.length > maxLogs) maxLogs = i.logs.length; });
+            const detailExcel = rawData.map(i => {
+                const row = { "Nama Karyawan": i.nama, "Tanggal": i.tgl, "Kantor Masuk": i.in, "Kantor Pulang": i.out, "Aula SMP (Kajian)": i.kajian, "Total JP (Jam Pelajaran)": i.totalJam || 0 };
+                for(let j = 0; j < maxLogs; j++) {
+                    const l = i.logs[j];
+                    row[`Jam-${j+1} / Aktivitas`] = l ? `${l.loc} (${l.waktu})${l.jam ? ' - '+l.jam+' Jam' : ''}` : "-";
+                }
+                return row;
             });
+            const wsDetail = XLSX.utils.json_to_sheet(detailExcel);
+            XLSX.utils.book_append_sheet(wb, wsDetail, "Detail Harian");
 
-            // 5. 1 sheet "Rekap Bulanan" total per guru, dipecah per bulan juga (ada kolom Bulan)
-            const summaryObj = {};
-            bucketKeys.forEach(key => {
-                monthBuckets[key].rows.forEach(i => {
-                    const sKey = `${monthBuckets[key].label}_${i.nama}`;
-                    if(!summaryObj[sKey]) summaryObj[sKey] = { Bulan: monthBuckets[key].label, Nama: i.nama, Total_Hadir: 0, Total_Kajian: 0, Total_Rapat: 0, Total_Eskul: 0, Total_Jam_Mengajar: 0 };
-                    if(i.in !== "-" || i.out !== "-") summaryObj[sKey].Total_Hadir++;
-                    if(i.kajian !== "-") summaryObj[sKey].Total_Kajian++;
-                    if(i.rapat !== "-") summaryObj[sKey].Total_Rapat++;
-                    summaryObj[sKey].Total_Eskul += i.eskul.length;
-                    summaryObj[sKey].Total_Jam_Mengajar += i.logs.length;
+            // SHEET 2: SUMMARY REKAP TOTAL (KHUSUS BULANAN)
+            if(mode === 'bulanan') {
+                const summaryObj = {};
+                rawData.forEach(i => {
+                    if(!summaryObj[i.nama]) summaryObj[i.nama] = { Nama: i.nama, Total_Hadir: 0, Total_Kajian: 0, "Total_JP_Sebulan": 0 };
+                    if(i.in !== "-" || i.out !== "-") summaryObj[i.nama].Total_Hadir++;
+                    if(i.kajian !== "-") summaryObj[i.nama].Total_Kajian++;
+                    summaryObj[i.nama].Total_JP_Sebulan += i.totalJam;
                 });
-            });
-            const summaryExcel = Object.values(summaryObj);
-            const wsSummary = XLSX.utils.json_to_sheet(summaryExcel);
-            XLSX.utils.book_append_sheet(wb, wsSummary, "Rekap Bulanan");
+                const summaryExcel = Object.values(summaryObj);
+                const wsSummary = XLSX.utils.json_to_sheet(summaryExcel);
+                XLSX.utils.book_append_sheet(wb, wsSummary, "Rekap Total Karyawan");
+            }
 
-            // 6. Nama file otomatis nyesuain rentang bulan yang ada
-            const first = monthBuckets[bucketKeys[0]].label.replace(' ', '_');
-            const last = monthBuckets[bucketKeys[bucketKeys.length - 1]].label.replace(' ', '_');
-            const labelBulan = bucketKeys.length === 1 ? first : `${first}-${last}`;
-            XLSX.writeFile(wb, `Rekap_Absensi_DA_Bulanan_${labelBulan}.xlsx`);
+            XLSX.writeFile(wb, `Rekap_Absensi_DA_${mode}_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
         // Samain dengan tanggal expiry di rules Firestore (timestamp.date(...))
         const LICENSE_EXPIRY = new Date(2027, 6, 10); // 10 Juli 2027
-
-        // ------- "Pembaruan Bulanan" otomatis (tanggal 5 tiap bulan) -------
-        const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-
-        function getLastMonthlyUpdateDate() {
-            const now = new Date();
-            const updateDate = now.getDate() >= 5
-                ? new Date(now.getFullYear(), now.getMonth(), 5)
-                : new Date(now.getFullYear(), now.getMonth() - 1, 5);
-            return updateDate; // dikembalikan sebagai Date object biar bisa dipakai toLocaleDateString juga
-        }
-
-        function showMonthlyUpdateBannerIfApplicable() {
-            const banner = document.getElementById('monthly-update-banner');
-            if (!banner) return;
-            if (new Date().getDate() !== 5) { banner.classList.add('hidden'); return; }
-
-            const formatted = getLastMonthlyUpdateDate().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
-            banner.classList.remove('hidden');
-            banner.innerHTML = `
-                <div class="modern-glass shine-effect rounded-3xl px-6 py-4 flex items-center justify-between gap-4 border border-cyan-500/30 relative overflow-hidden">
-                    <div class="flex items-center gap-3 relative z-10">
-                        <span class="text-cyan-400 text-lg">✦</span>
-                        <div class="text-left">
-                            <p class="text-[9px] font-black text-cyan-400 uppercase tracking-[0.2em]">Pembaruan Bulanan</p>
-                            <p class="text-[11px] font-semibold text-slate-300">Sistem telah diperbarui hari ini, ${formatted}.</p>
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('monthly-update-banner').classList.add('hidden')" class="text-slate-500 hover:text-white transition-all relative z-10">✕</button>
-                </div>`;
-        }
+        const LAST_UPDATED = new Date(2026, 6, 22);   // 22 Juli 2026
 
         window.showAbout = () => {
             const licenseEl = document.getElementById('about-license');
@@ -570,7 +579,7 @@
                 licenseEl.classList.toggle('text-red-500', isExpired);
             }
             if(updatedEl) {
-                updatedEl.innerText = getLastMonthlyUpdateDate().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+                updatedEl.innerText = LAST_UPDATED.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
             }
             document.getElementById('modal-about').classList.remove('hidden');
         };
@@ -619,7 +628,6 @@
                 document.getElementById('btn-change-identity').classList.remove('hidden');
             }
             startApp();
-            showMonthlyUpdateBannerIfApplicable();
         });
 
         if ('serviceWorker' in navigator) {
