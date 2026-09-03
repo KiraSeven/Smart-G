@@ -243,7 +243,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAT1t2gyYlEiZWdxPM8IeNu-t-VdyQ7de8",
@@ -413,8 +413,22 @@
 
     let statusKtr = "";
     if(jenis === "KANTOR") {
-        const logsToday = allAbsensi.filter(a => a.nama === name && a.tanggal === today && a.jenis === "KANTOR");
-        statusKtr = logsToday.length > 0 ? "PULANG" : "MASUK";
+        // Cek LANGSUNG ke server (bukan cache lokal) biar gak salah MASUK/PULANG
+        // kalau data lokal belum sempat sinkron pas app baru dibuka.
+        try {
+            const qKantor = query(
+                collection(db, "absensi"),
+                where("nama", "==", name),
+                where("tanggal", "==", today),
+                where("jenis", "==", "KANTOR")
+            );
+            const snapKantor = await getDocs(qKantor);
+            statusKtr = snapKantor.size > 0 ? "PULANG" : "MASUK";
+        } catch (e) {
+            // Fallback ke data cache lokal kalau query gagal (misal offline)
+            const logsToday = allAbsensi.filter(a => a.nama === name && a.tanggal === today && a.jenis === "KANTOR");
+            statusKtr = logsToday.length > 0 ? "PULANG" : "MASUK";
+        }
     }
 
     try {
